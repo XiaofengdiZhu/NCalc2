@@ -161,7 +161,8 @@ namespace NCalc
 
         public override void Visit(Function function)
         {
-            var args = new L.Expression[function.Expressions.Length];
+            int argCount = function.Expressions.Length;
+            var args = new L.Expression[argCount];
             for (int i = 0; i < function.Expressions.Length; i++)
             {
                 function.Expressions[i].Accept(this);
@@ -200,28 +201,125 @@ namespace NCalc
                 return;
             }
 
+            if (argCount == 0)
+            {
+                throw new TargetParameterCountException();
+            }
+            L.UnaryExpression arg0 = L.Expression.Convert(args[0], typeof(double));
+            L.UnaryExpression arg1 = argCount >= 2 ? L.Expression.Convert(args[1], typeof(double)) : null;
             switch (functionName)
             {
                 case "MIN":
-                    var minArg0 = L.Expression.Convert(args[0], typeof(double));
-                    var minArg1 = L.Expression.Convert(args[1], typeof(double));
-                    _result = L.Expression.Condition(L.Expression.LessThan(minArg0, minArg1), minArg0, minArg1);
+                    if (argCount < 2)
+                    {
+                        throw new TargetParameterCountException();
+                    }
+                    _result = L.Expression.Condition(L.Expression.LessThan(arg0, arg1), arg0, arg1);
                     break;
                 case "MAX":
-                    var maxArg0 = L.Expression.Convert(args[0], typeof(double));
-                    var maxArg1 = L.Expression.Convert(args[1], typeof(double));
-                    _result = L.Expression.Condition(L.Expression.GreaterThan(maxArg0, maxArg1), maxArg0, maxArg1);
+                    if (argCount < 2)
+                    {
+                        throw new TargetParameterCountException();
+                    }
+                    _result = L.Expression.Condition(L.Expression.GreaterThan(arg0, arg1), arg0, arg1);
                     break;
                 case "POW":
-                    var powArg0 = L.Expression.Convert(args[0], typeof(double));
-                    var powArg1 = L.Expression.Convert(args[1], typeof(double));
-                    _result = L.Expression.Power(powArg0, powArg1);
+                    if (argCount < 2)
+                    {
+                        throw new TargetParameterCountException();
+                    }
+                    _result = L.Expression.Power(arg0, arg1);
+                    break;
+                case "ABS":
+                    _result = MethExpressionWithOneParameter("Abs", arg0);
+                    break;
+                case "ACOS":
+                    _result = MethExpressionWithOneParameter("Acos", arg0);
+                    break;
+                case "ASIN":
+                    _result = MethExpressionWithOneParameter("Asin", arg0);
+                    break;
+                case "ATAN":
+                    _result = MethExpressionWithOneParameter("Atan", arg0);
+                    break;
+                case "ATAN2":
+                    if (argCount < 2)
+                    {
+                        throw new TargetParameterCountException();
+                    }
+                    _result = MethExpressionWithTwoParameter("Atan2", arg0, arg1);
+                    break;
+                case "CEILING":
+                    _result = MethExpressionWithOneParameter("Ceiling", arg0);
+                    break;
+                case "COS":
+                    _result = MethExpressionWithOneParameter("Cos", arg0);
+                    break;
+                case "COSH":
+                    _result = MethExpressionWithOneParameter("Cosh", arg0);
+                    break;
+                case "EXP":
+                    _result = MethExpressionWithOneParameter("Exp", arg0);
+                    break;
+                case "FLOOR":
+                    _result = MethExpressionWithOneParameter("Floor", arg0);
+                    break;
+                case "IEEEREMAINDER":
+                    if (argCount < 2)
+                    {
+                        throw new TargetParameterCountException();
+                    }
+                    _result = MethExpressionWithTwoParameter("IEEERemainder", arg0, arg1);
+                    break;
+                case "LOG":
+                    _result = argCount >= 2 ? MethExpressionWithTwoParameter("Log", arg0, arg1) : MethExpressionWithOneParameter("Log", arg0);
+                    break;
+                case "LOG10":
+                    _result = MethExpressionWithOneParameter("Log10", arg0);
+                    break;
+                case "ROUND":
+                    if (argCount >= 2)
+                    {
+                        L.Expression.Call(typeof(Math).GetRuntimeMethod("Round", new[] { typeof(double), typeof(int) }), arg0, L.Expression.Convert(args[1], typeof(int)));
+                    }
+                    else
+                    {
+                        _result = MethExpressionWithOneParameter("Round", arg0);
+                    }
+                    break;
+                case "SIGN":
+                    _result = MethExpressionWithOneParameter("Sign", arg0);
+                    break;
+                case "SIN":
+                    _result = MethExpressionWithOneParameter("Sin", arg0);
+                    break;
+                case "SINH":
+                    _result = MethExpressionWithOneParameter("Sinh", arg0);
+                    break;
+                case "SQRT":
+                    _result = MethExpressionWithOneParameter("Sqrt", arg0);
+                    break;
+                case "TAN":
+                    _result = MethExpressionWithOneParameter("Tan", arg0);
+                    break;
+                case "TANH":
+                    _result = MethExpressionWithOneParameter("Tanh", arg0);
+                    break;
+                case "TRUNCATE":
+                    _result = MethExpressionWithOneParameter("Truncate", arg0);
                     break;
                 default:
                     throw new MissingMethodException($"method not found: {functionName}");
             }
         }
-
+        public L.MethodCallExpression MethExpressionWithOneParameter(string methodName, L.Expression arg)
+        {
+            return L.Expression.Call(typeof(Math).GetRuntimeMethod(methodName, new[] { typeof(double) }), arg);
+        }
+        public L.MethodCallExpression MethExpressionWithTwoParameter(string methodName, L.Expression arg1, L.Expression arg2)
+        {
+            return L.Expression.Call(typeof(Math).GetRuntimeMethod(methodName, new[] { typeof(double), typeof(double) }), arg1, arg2);
+        }
         public override void Visit(Identifier function)
         {
             if (_context == null)
