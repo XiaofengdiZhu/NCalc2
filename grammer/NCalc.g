@@ -189,7 +189,7 @@ primaryExpression returns [LogicalExpression value]
 	;
 
 valueExpression returns [ValueExpression value]
-	: 	INTEGER		{ try { $value = new ValueExpression(int.Parse($INTEGER.text)); } catch(System.OverflowException) { $value = new ValueExpression((object)long.Parse($INTEGER.text)); } }
+	: 	INTEGER		{ $value = new ValueExpression(long.Parse($INTEGER.text)); }
 	|	FLOAT		{ $value = new ValueExpression(double.Parse($FLOAT.text, NumberStyles.Float, numberFormatInfo)); }
 	|	STRING		{ $value = new ValueExpression(extractString($STRING.text)); }
 	| 	DATETIME	{ $value = new ValueExpression(DateTime.Parse($DATETIME.text.Substring(1, $DATETIME.text.Length-2))); }
