@@ -118,13 +118,13 @@ namespace NCalc.Tests
         }
 
         [Fact]
-        public void ExpressionThrowsNullReferenceExceptionWithoutNullOption()
+        public void ExpressionThrowsArgumentNullExceptionWithoutNullOption()
         {
             var e = Extensions.CreateExpression("'a string' == null");
 
             e.Parameters["null"] = null;
 
-            Assert.Throws<NullReferenceException>(() => e.Evaluate());
+            Assert.Throws<ArgumentNullException>(() => e.Evaluate());
         }
 
         [Fact]
@@ -941,6 +941,16 @@ namespace NCalc.Tests
                 Assert.Throws<FormatException>(() => expression.Evaluate());
             }
         }
+
+        [Fact]
+        public void ShouldUseCorrectBitwiseXOr()
+        {
+            var logicalExpression = Expression.Compile("1 ^ 2", true);
+
+            var serializedString = logicalExpression.ToString();
+
+            Assert.Equal("1 ^ 2", serializedString);
+            Assert.Equal(3, new Expression(logicalExpression, EvaluateOptions.None).Evaluate());
+        }
     }
 }
-

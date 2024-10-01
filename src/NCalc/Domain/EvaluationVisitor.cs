@@ -6,8 +6,6 @@ namespace NCalc.Domain
 {
     public class EvaluationVisitor : LogicalExpressionVisitor
     {
-        private delegate T Func<T>();
-
         private readonly EvaluateOptions _options = EvaluateOptions.None;
         private readonly CultureInfo _cultureInfo = CultureInfo.CurrentCulture;
         private readonly StringComparer _comparer;
@@ -74,7 +72,14 @@ namespace NCalc.Domain
         {
             var allowNull = (_options & EvaluateOptions.AllowNullParameter) == EvaluateOptions.AllowNullParameter;
 
-            Type mpt = allowNull ? GetMostPreciseType(a?.GetType(), b?.GetType()) ?? typeof(object) : GetMostPreciseType(a.GetType(), b.GetType());
+            if (!allowNull)
+            {
+                if (a == null)
+                    throw new ArgumentNullException(nameof(a));
+
+                if (b == null)
+                    throw new ArgumentNullException(nameof(b));
+            }
 
             if (a == null && b == null)
             {
@@ -85,6 +90,8 @@ namespace NCalc.Domain
             {
                 return -1;
             }
+
+            Type mpt = GetMostPreciseType(a.GetType(), b.GetType());
 
             a = Convert.ChangeType(a, mpt, _cultureInfo);
             b = Convert.ChangeType(b, mpt, _cultureInfo);

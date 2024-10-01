@@ -1,4 +1,4 @@
-﻿using NCalc.Domain;
+using NCalc.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +24,45 @@ namespace NCalc
             { typeof(char), new HashSet<Type> { typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal) }},
             { typeof(float), new HashSet<Type> { typeof(double) }},
             { typeof(ulong), new HashSet<Type> { typeof(float), typeof(double), typeof(decimal) }},
+        };
+
+        private struct MathCallFunction
+        {
+            public MethodInfo MathMethodInfo;
+            public int ArgumentCount;
+        }
+
+        private static MathCallFunction GetMathCallFunctionHelper(string method, int argCount) => new MathCallFunction {
+            MathMethodInfo = typeof(Math).GetMethod(method, Enumerable.Repeat(typeof(double), argCount).ToArray()),
+            ArgumentCount = argCount };
+
+        private static readonly Dictionary<string, MathCallFunction> _mathCallFunctions = new Dictionary<string, MathCallFunction>()
+        {
+            { "ABS",           GetMathCallFunctionHelper(nameof(Math.Abs),           1 ) },
+            { "ACOS",          GetMathCallFunctionHelper(nameof(Math.Acos),          1 ) },
+            { "ASIN",          GetMathCallFunctionHelper(nameof(Math.Asin),          1 ) },
+            { "ATAN",          GetMathCallFunctionHelper(nameof(Math.Atan),          1 ) },
+            { "ATAN2",         GetMathCallFunctionHelper(nameof(Math.Atan2),         2 ) },
+            { "CEILING",       GetMathCallFunctionHelper(nameof(Math.Ceiling),       1 ) },
+            { "COS",           GetMathCallFunctionHelper(nameof(Math.Cos),           1 ) },
+            { "COSH",          GetMathCallFunctionHelper(nameof(Math.Cosh),          1 ) },
+            { "EXP",           GetMathCallFunctionHelper(nameof(Math.Exp),           1 ) },
+            { "FLOOR",         GetMathCallFunctionHelper(nameof(Math.Floor),         1 ) },
+            { "IEEEREMAINDER", GetMathCallFunctionHelper(nameof(Math.IEEERemainder), 2 ) },
+            { "LOG",           GetMathCallFunctionHelper(nameof(Math.Log),           2 ) },
+            { "LOG10",         GetMathCallFunctionHelper(nameof(Math.Log10),         1 ) },
+            { "SIGN",          GetMathCallFunctionHelper(nameof(Math.Sign),          1 ) },
+            { "SIN",           GetMathCallFunctionHelper(nameof(Math.Sin),           1 ) },
+            { "SINH",          GetMathCallFunctionHelper(nameof(Math.Sinh),          1 ) },
+            { "SQRT",          GetMathCallFunctionHelper(nameof(Math.Sqrt),          1 ) },
+            { "TAN",           GetMathCallFunctionHelper(nameof(Math.Tan),           1 ) },
+            { "TANH",          GetMathCallFunctionHelper(nameof(Math.Tanh),          1 ) },
+            { "TRUNCATE",      GetMathCallFunctionHelper(nameof(Math.Truncate),      1 ) },
+
+            // Exceptional handling
+            { "ROUND",         new MathCallFunction() { 
+                MathMethodInfo = typeof(Math).GetMethod(nameof(Math.Round), new[] { typeof(double), typeof(int), typeof(MidpointRounding) }),
+                ArgumentCount = 2 } }
         };
 
         private bool Ordinal { get { return (_options & EvaluateOptions.MatchStringsOrdinal) == EvaluateOptions.MatchStringsOrdinal; } }
@@ -201,115 +240,64 @@ namespace NCalc
                 return;
             }
 
-            if (argCount == 0)
+            void CheckArgumentsLengthForFunction(string funcStr, int argsNum, int argsNeed)
             {
-                throw new TargetParameterCountException();
+                if (argsNum != argsNeed)
+                    throw new ArgumentException($"{funcStr} takes exactly {argsNeed} argument");
+            };
+
+            void MakeMathCallExpression(MathCallFunction mathMethod, int argsNumActual)
+            {
+                CheckArgumentsLengthForFunction(mathMethod.MathMethodInfo.Name, argsNumActual, mathMethod.ArgumentCount);
+
+                _result = L.Expression.Call(mathMethod.MathMethodInfo,
+                    Enumerable.Range(0, argsNumActual).Select( i => L.Expression.Convert(args[i], typeof(double)) ));
             }
-            L.UnaryExpression arg0 = L.Expression.Convert(args[0], typeof(double));
-            L.UnaryExpression arg1 = argCount >= 2 ? L.Expression.Convert(args[1], typeof(double)) : null;
+
+            L.UnaryExpression arg0;
+            L.UnaryExpression arg1;
+
+            int actualNumArgs = function.Expressions.Length;
+
             switch (functionName)
             {
-                case "MIN":
-                    if (argCount < 2)
-                    {
-                        throw new TargetParameterCountException();
-                    }
-                    _result = L.Expression.Condition(L.Expression.LessThan(arg0, arg1), arg0, arg1);
-                    break;
+                // Exceptional handling
                 case "MAX":
-                    if (argCount < 2)
-                    {
-                        throw new TargetParameterCountException();
-                    }
+                    CheckArgumentsLengthForFunction(functionName, function.Expressions.Length, 2);
+                    arg0 = L.Expression.Convert(args[0], typeof(double));
+                    arg1 = L.Expression.Convert(args[1], typeof(double));
                     _result = L.Expression.Condition(L.Expression.GreaterThan(arg0, arg1), arg0, arg1);
                     break;
+                case "MIN":
+                    CheckArgumentsLengthForFunction(functionName, function.Expressions.Length, 2);
+                    arg0 = L.Expression.Convert(args[0], typeof(double));
+                    arg1 = L.Expression.Convert(args[1], typeof(double));
+                    _result = L.Expression.Condition(L.Expression.LessThan(arg0, arg1), arg0, arg1);
+                    break;
                 case "POW":
-                    if (argCount < 2)
-                    {
-                        throw new TargetParameterCountException();
-                    }
+                    CheckArgumentsLengthForFunction(functionName, function.Expressions.Length, 2);
+                    arg0 = L.Expression.Convert(args[0], typeof(double));
+                    arg1 = L.Expression.Convert(args[1], typeof(double));
                     _result = L.Expression.Power(arg0, arg1);
                     break;
-                case "ABS":
-                    _result = MethExpressionWithOneParameter("Abs", arg0);
-                    break;
-                case "ACOS":
-                    _result = MethExpressionWithOneParameter("Acos", arg0);
-                    break;
-                case "ASIN":
-                    _result = MethExpressionWithOneParameter("Asin", arg0);
-                    break;
-                case "ATAN":
-                    _result = MethExpressionWithOneParameter("Atan", arg0);
-                    break;
-                case "ATAN2":
-                    if (argCount < 2)
-                    {
-                        throw new TargetParameterCountException();
-                    }
-                    _result = MethExpressionWithTwoParameter("Atan2", arg0, arg1);
-                    break;
-                case "CEILING":
-                    _result = MethExpressionWithOneParameter("Ceiling", arg0);
-                    break;
-                case "COS":
-                    _result = MethExpressionWithOneParameter("Cos", arg0);
-                    break;
-                case "COSH":
-                    _result = MethExpressionWithOneParameter("Cosh", arg0);
-                    break;
-                case "EXP":
-                    _result = MethExpressionWithOneParameter("Exp", arg0);
-                    break;
-                case "FLOOR":
-                    _result = MethExpressionWithOneParameter("Floor", arg0);
-                    break;
-                case "IEEEREMAINDER":
-                    if (argCount < 2)
-                    {
-                        throw new TargetParameterCountException();
-                    }
-                    _result = MethExpressionWithTwoParameter("IEEERemainder", arg0, arg1);
-                    break;
-                case "LOG":
-                    _result = argCount >= 2 ? MethExpressionWithTwoParameter("Log", arg0, arg1) : MethExpressionWithOneParameter("Log", arg0);
-                    break;
-                case "LOG10":
-                    _result = MethExpressionWithOneParameter("Log10", arg0);
-                    break;
                 case "ROUND":
-                    if (argCount >= 2)
+                    CheckArgumentsLengthForFunction(functionName, function.Expressions.Length, 2);
+                    arg0 = L.Expression.Convert(args[0], typeof(double));
+                    arg1 = L.Expression.Convert(args[1], typeof(int));
+                    MidpointRounding rounding = (_options & EvaluateOptions.RoundAwayFromZero) == EvaluateOptions.RoundAwayFromZero ? MidpointRounding.AwayFromZero : MidpointRounding.ToEven;
+                    _result = L.Expression.Call(_mathCallFunctions["ROUND"].MathMethodInfo, arg0, arg1, L.Expression.Constant(rounding));
+                    break;
+                default:
+                    // Regular handling
+                    if (_mathCallFunctions.TryGetValue(functionName, out MathCallFunction func))
                     {
-                        L.Expression.Call(typeof(Math).GetRuntimeMethod("Round", new[] { typeof(double), typeof(int) }), arg0, L.Expression.Convert(args[1], typeof(int)));
+                        MakeMathCallExpression(func, actualNumArgs);
                     }
                     else
                     {
-                        _result = MethExpressionWithOneParameter("Round", arg0);
+                        throw new MissingMethodException($"method not found: {functionName}");
                     }
                     break;
-                case "SIGN":
-                    _result = MethExpressionWithOneParameter("Sign", arg0);
-                    break;
-                case "SIN":
-                    _result = MethExpressionWithOneParameter("Sin", arg0);
-                    break;
-                case "SINH":
-                    _result = MethExpressionWithOneParameter("Sinh", arg0);
-                    break;
-                case "SQRT":
-                    _result = MethExpressionWithOneParameter("Sqrt", arg0);
-                    break;
-                case "TAN":
-                    _result = MethExpressionWithOneParameter("Tan", arg0);
-                    break;
-                case "TANH":
-                    _result = MethExpressionWithOneParameter("Tanh", arg0);
-                    break;
-                case "TRUNCATE":
-                    _result = MethExpressionWithOneParameter("Truncate", arg0);
-                    break;
-                default:
-                    throw new MissingMethodException($"method not found: {functionName}");
             }
         }
         public L.MethodCallExpression MethExpressionWithOneParameter(string methodName, L.Expression arg)
