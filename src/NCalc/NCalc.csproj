@@ -7,12 +7,12 @@
 		<Authors>Sebastian Klose</Authors>
 		<TargetFrameworks>net45;netstandard2.0;net6.0;net8.0</TargetFrameworks>
 		<AssemblyName>NCalc</AssemblyName>
-		<PackageId>CoreCLR-NCalc</PackageId>
+		<PackageId>CoreCLR-NCalc-Mod</PackageId>
 		<PackageTags>ncalc;coreclr;expression;evaluator</PackageTags>
-		<PackageProjectUrl>https://github.com/sklose/NCalc2</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/XiaofengdiZhu/NCalc2</PackageProjectUrl>
                 <PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>git://github.com/sklose/NCalc2</RepositoryUrl>
+		<RepositoryType>GitHub</RepositoryType>
+		<RepositoryUrl>git://github.com/XiaofengdiZhu/NCalc2</RepositoryUrl>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
 		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
@@ -24,6 +24,7 @@
 		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>ncalc.png</PackageIcon>
+		<Version>3.1.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
